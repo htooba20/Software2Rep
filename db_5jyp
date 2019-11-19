@@ -1,0 +1,82 @@
+#creation of relational database
+import sqlite3
+
+conn = sqlite3.connect("student.db")
+c = conn.cursor()
+
+try:
+    
+    c.execute('''CREATE TABLE student (
+        student_id text PRIMARY KEY NOT NULL,
+        first_name text NOT NULL,
+        last_name text NOT NULL,
+       FOREIGN KEY (student_id) REFERENCES course(student_id) )''')
+except sqlite3.OperationalError as e:
+    print('sqlite error:', e.args[0])  # table already exists
+
+conn.commit()
+
+try:
+    c.execute('''CREATE TABLE course (
+        course_id text PRIMARY KEY NOT NULL,
+        course_name text NOT NULL,
+        credit_hour int NOT NULL,
+        instructor_name test NOT NULL,
+       FOREIGN KEY (instructor_name) REFERENCES instructor(instructor_name),
+       FOREIGN KEY (course_id) REFERENCES enrollment(course_id))''')
+except sqlite3.OperationalError as e:
+    print('sqlite error:', e.args[0])  # table already exists
+
+conn.commit()
+
+try:
+    c.execute('''CREATE TABLE enrollment (
+        student_id text NOT NULL,
+        course_id text NOT NULL,
+        grade text NOT NULL,
+        FOREIGN KEY (student_id) REFERENCES student (student_id),
+       fOREIGN KEY (course_id) REFERENCES enrollment(course_id))''')
+    
+        
+except sqlite3.OperationalError as e:
+    print('sqlite error:', e.args[0])  # table already exists
+
+conn.commit()
+
+try:
+    c.execute('''CREATE TABLE instructor (
+        instructor_name text PRIMARY KEY NOT NULL,
+        instructor_lastname NOT NULL,
+       FOREIGN KEY (instructor_name) REFERENCES course(instructor_name) )''')
+except sqlite3.OperationalError as e:
+    print('sqlite error:', e.args[0])  # table already exists
+
+conn.commit()
+
+try:
+    c.execute('''CREATE TABLE grades (
+        student_id text  NOT NULL,
+        course_id NOT NULL,
+       grades REAL )''')
+except sqlite3.OperationalError as e:
+    print('sqlite error:', e.args[0])  # table already exists
+
+conn.commit()
+
+try:
+    c.execute('''CREATE TABLE passwordS (
+        student_id text PRIMARY KEY NOT NULL,
+        password NOT NULL )''')
+except sqlite3.OperationalError as e:
+    print('sqlite error:', e.args[0])  # table already exists
+
+conn.commit()
+
+try:
+    c.execute('''CREATE TABLE passwordI (
+        instructor_name text PRIMARY KEY NOT NULL,
+        password NOT NULL )''')
+except sqlite3.OperationalError as e:
+    print('sqlite error:', e.args[0])  # table already exists
+
+conn.commit()
