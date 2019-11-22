@@ -13,41 +13,49 @@ import sqlite3
 conn = sqlite3.connect("student.db")
 c = conn.cursor()
 
-class Student:
-    
-    def __init__(self,sFirstName,sLastName,sID,sCourses):
-        self.firstName = sFirstName
-        self.lastName = sLastName
-        self.studentID = sID
-        self.courses = sCourses
-    
-    def addStudent(self):
-        newStudent = Student()
-        newStudent.name = sName
-        newStudent.studentID = sID
-        newStudent.courses = sCourses
-        studentList.append(newStudent)
-    
-    def display(self, s):
-        print("Name: ", s.name)
-        print("ID: ", s.studentID)
-        print("Courses: ", s.courses)
-    
-    def search(self, sID): 
-        for i in range(studentList.__len__()): 
-            if(studentList[i].studentID == sID): 
-                return i        
-                                  
-    def delete(self, sID): 
-        i = search(sID)   
-        del studentList[i] 
-    
-    def update(self, sID, sName, sCourses): 
-        i = search(sID) 
-        studentList[i].name = sName
-        studentList[i].courses = sCourses
+#class Student:
+#    
+#    def __init__(self,sFirstName,sLastName,sID,sCourses):
+#        self.firstName = sFirstName
+#        self.lastName = sLastName
+#        self.studentID = sID
+#        self.courses = sCourses
+#    
+#    def addStudent(self):
+#        newStudent = Student()
+#        newStudent.name = sName
+#        newStudent.studentID = sID
+#        newStudent.courses = sCourses
+#        studentList.append(newStudent)
+#    
+#    def display(self, s):
+#        print("Name: ", s.name)
+#        print("ID: ", s.studentID)
+#        print("Courses: ", s.courses)
+#    
+#    def search(self, sID): 
+#        for i in range(studentList.__len__()): 
+#            if(studentList[i].studentID == sID): 
+#                return i        
+#                                  
+#    def delete(self, sID): 
+#        i = search(sID)   
+#        del studentList[i] 
+#    
+#    def update(self, sID, sName, sCourses): 
+#        i = search(sID) 
+#        studentList[i].name = sName
+#        studentList[i].courses = sCourses
 
 class AdminWindow:
+    
+    
+    student_id = ""
+    course_id = ""
+    courses=[]
+    assignments=[]
+    grades = []
+    
     
     def __init__(self):
 #        frame = Frame(master, width=500, height=450)
@@ -64,8 +72,34 @@ class AdminWindow:
         
         self.logoutButton = Button(frame, text="Logout",command=lambda: frame.destroy())
         self.logoutButton.grid(row=0,column=2)
+    
         
+    def set_student_id(self,s_id):
+        self.student_id = s_id
         
+    def set_course_id(self,c_id):
+        self.course_id = c_id
+    
+    def set_assignments(self,s_id,c_id):
+        c.execute("SELECT * FROM grades WHERE student_id= ? AND course_id = ?",(s_id,c_id))
+        conn.commit()
+        results = c.fetchall()
+        assignments=[]
+        print(results)
+        for i in range(len(results)):
+            assignments.append(results[i][3])
+        return assignments
+    def get_grades(self,s_id,c_id):
+        c.execute("SELECT * FROM grades WHERE student_id= ? AND course_id = ?",(s_id,c_id))
+        conn.commit()
+        results = c.fetchall()
+        return results
+    
+    def get_courses(self,s_id):
+        c.execute("SELECT * FROM enrollment WHERE student_id= ?",(s_id,))
+        conn.commit()
+        results = c.fetchall()
+        return results
         
     def addStudentPopUp(self):
         frame = Toplevel()
@@ -126,50 +160,130 @@ class AdminWindow:
             
             for i in range (len(courses)):
                 self.listbox.insert('end',courses[i][1] +" " +courses[i][2])
-                course_list.append(courses[i][1] +" " +courses[i][2])
+                course_list.append(courses[i][1])
             print(course_list)    
             
             #s = Student(records[1],records[2],records[0],course_list)
             
-            view_grades_button = Button(frame,text="View Grades",command=lambda: self.view_grades_window(course_list,records[0]))
+            view_grades_button = Button(frame,text="View Grades",command=lambda: self.view_grades_window(records[0],course_list))
             view_grades_button.grid(row = 6,column=2,sticky=S)
+            
+            view_courses_button = Button(frame,text="View Courses",command=lambda: self.view_courses_window(records[0]))
+            view_courses_button.grid(row=6,column=2)
             #l_name.delete(0,END)
             #student_id.delete(0,END)
             #course_id.delete(0,END)
             #add_grade.delete(0,END)
             #return records
+    def view_courses_window(self,student_id):
+        frame = Toplevel()
+        coursesLabel = Label(frame,text="Courses")
+        coursesLabel.grid(row=0,column=0)
+        
+        self.listbox = Listbox(frame, width=30, height=10,)
+        self.listbox.grid(row=0, column=1)
+        self.listbox.config(state=NORMAL)
+        self.listbox.delete('0',END)
+        
+        courses = []
+        courses = self.get_courses(student_id)
+        print(courses)
+        
+        for i in range (len(courses)):
+#               print_record+=(record)+"\n"
+                self.listbox.insert('end',courses[i])
+        
+        
     
-    def view_grades_window(self,records,courses):
+    def view_grades_window(self,student_id,course_list):
         frame = Toplevel()
         self.course_label = Label(frame,text="Course ID: ")
-        self.course_combobox = ttk.Combobox(frame,value=courses)
+        self.course_combobox = ttk.Combobox(frame,value=course_list)
         self.course_label.grid(row=0,column=0)
         self.course_combobox.grid(row=0,column=1)
-        self.addCourseButton = Button(frame,text="Add Course",command=lambda: add_grades(combobox.get(),student_id,))
+        self.add_grade_button = Button(frame,text="Add/Remove Grades",command=lambda: self.add_grades_window(self.course_combobox.get(),student_id))
+        self.add_grade_button.grid(row=1,column=1)
         
         #assignment entry
-        self.assignmentLabel = Label(frame,text="")
-    
+    def add_grades_window(self,course_id,student_id):
+        frame = Toplevel()
+        self.set_course_id(course_id)
+        self.a_label = Label(frame,text="Assignment Name")
+        self.a_entry = Entry(frame)
+        self.g_label = Label(frame,text = "Grade: ")
+        self.g_entry = Entry(frame)
+        self.add_button = Button(frame,text="Add Grade",command=lambda: [self.add_grades(course_id,student_id,self.a_entry.get(),self.g_entry.get()),self.show_grades(frame,student_id,course_id)])
+        
+        self.a_label.grid(row=0,column=0)
+        self.a_entry.grid(row=0,column=1)
+        self.g_label.grid(row=1,column=0)
+        self.g_entry.grid(row=1,column=1)
+        self.add_button.grid(row=2,column=1)
+        self.show_grades(frame,student_id,course_id)
     #def add_grades_window(self,courses,student_id):
+    
+        self.r_label = Label(frame,text="Remove Grades: ")
+        self.set_assignments(student_id,course_id)
+        #self.g_combobox = ttk.Combobox(frame,value = self.assignments)
+        self.remove_button = Button(frame, text="Delete",command=lambda: [self.remove_grades(frame,student_id,course_id,self.L.index(ACTIVE)),self.L.select_set(0)])
+        self.r_label.grid(row=4,column=0,stick=N)
+        #self.g_combobox.grid(row=3,column=1)
+        self.remove_button.grid(row=4,column=0)
         
         #grade entry
-    def add_grades(student_id,course_id):
+        
+    def show_grades(self,frame,student_id,course_id):
+        
+#        self.listbox = Listbox(frame, width=30, height=10,)
+#        self.listbox.grid(row=7, column=1)
+#        self.listbox.config(state=NORMAL)
+#        self.listbox.delete('0',END)   
+        grades = []
+        grades = self.get_grades(student_id,course_id)
+        
+        self.s = Scrollbar(frame)
+        self.L = Listbox(frame)
+        
+        self.s.grid(row=4,column=2,sticky=NS)
+        self.L.grid(row=4,column=1,sticky=E)
+        self.L.config(state=NORMAL)
+        self.L.delete('0',END)
+        
+        
+        self.s['command'] = self.L.yview
+        self.L['yscrollcommand'] = self.s.set
+        
+        for i in range(len(grades)): 
+           self.L.insert(END, grades[i][3]+":\t"+str(grades[i][2]) )
+        print(grades)
+        return self.L
+    
+    def add_grades(self,course_id,student_id,assignment,grade):
     
         with conn:
-            s_id=student_id
-            c_id=course_id
-            g= int(add_grade.get())
+            s_id = student_id
+            c_id = course_id
+            g = grade
+            a = assignment
             
-    
-            #c.execute("INSERT INTO students VALUES('studentId', 'firstName', 'lastName')")
-            c.execute("INSERT INTO grades (student_id,course_id,grades) values (?,?,?)",
-                    (s_id,c_id,g))
+            c.execute("INSERT INTO grades (student_id,course_id,grades,assignment) values (?,?,?,?)",
+                    (s_id,c_id,g,a))
             
             conn.commit()
             
-    
-    def updateRecords(self):
-        print("updating records")
+            
+    def remove_grades(self,frame,student_id,course_id,i):
+        
+        grades = []
+        grades = self.get_grades(student_id,course_id)
+        print("printing grades table")
+        print(grades)
+        assignment = grades[i][3]
+        with conn:
+            c.execute("DELETE FROM grades WHERE assignment = ? and student_id = ?",
+                    (assignment,student_id))
+            conn.commit()
+        self.show_grades(frame,student_id,course_id)
 
 
         
