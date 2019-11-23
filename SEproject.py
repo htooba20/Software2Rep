@@ -62,13 +62,16 @@ class AdminWindow:
 #        frame.pack()
         frame = Toplevel()
 #        
-        self.addStudentButton = Button(frame,text="Add a student",command=lambda: self.addStudentPopUp())
+        self.addStudentButton = Button(frame,text="Add a student",command=lambda: self.add_student_window())
         self.addStudentButton.grid(row=0,column=1)
         
+        self.add_course_button = Button(frame,text="Add a course",command=lambda: self.add_course_window())
+        self.add_course_button.grid(row=1,column=1)
+        
         self.searchEntry = Entry(frame)
-        self.searchEntry.grid(row=1,column=1)
+        self.searchEntry.grid(row=2,column=1)
         self.searchStudentButton = Button(frame,text="Search Student",command=lambda:self.search_student(frame))
-        self.searchStudentButton.grid(row=1,column=2)
+        self.searchStudentButton.grid(row=2,column=2)
         
         self.logoutButton = Button(frame, text="Logout",command=lambda: frame.destroy())
         self.logoutButton.grid(row=0,column=2)
@@ -100,26 +103,70 @@ class AdminWindow:
         conn.commit()
         results = c.fetchall()
         return results
+    
+    def get_univ_courses(self):
+        c.execute("SELECT * FROM courses")
+        conn.commit()
+        results = c.fetchall()
+        return results
         
-    def addStudentPopUp(self):
+        
+    def add_student_window(self):
         frame = Toplevel()
-        self.nameLabel = Label(frame,text="Student Name: ")
-        self.passLabel = Label(frame,text="Student Password: ")
-        self.idLabel = Label(frame,text="Student ID: ")
-        self.nameEntry = Entry(frame)
-        self.passEntry = Entry(frame)
-        self.idEntry = Entry(frame)
+        self.first_name_label = Label(frame,text="First Name: ")
+        self.last_name_label = Label(frame,text="Last Name: ")
+        self.pass_label = Label(frame,text="Student Password: ")
+        self.id_label = Label(frame,text="Student ID: ")
+        self.first_name_entry = Entry(frame)
+        self.last_name_entry = Entry(frame)
+        self.pass_entry = Entry(frame)
+        self.id_entry = Entry(frame)
+        self.saveButton = Button(frame,text="Save",width=7,command=lambda: [self.check_student_entries("a","b","c","d"),
+                                                                            frame.destroy()])    
+        self.cancelButton = Button(frame, text = "Cancel",width=7,command=frame.destroy)
+        
+        self.first_name_label.grid(row=2,column=1)
+        self.first_name_entry.grid(row=2,column=2)
+        self.last_name_label.grid(row=3,column=1)
+        self.last_name_entry.grid(row=3,column=2)
+        self.pass_label.grid(row=4,column=1)
+        self.pass_entry.grid(row=4,column=2)
+        self.id_label.grid(row=5,column=1)
+        self.id_entry.grid(row=5,column=2)
+        self.saveButton.grid(row=6,column=2,sticky=W)
+        self.cancelButton.grid(row=6,column=2,sticky=E)
+    
+    def check_student_entries(self,f_name,l_name,s_id,password):
+        #this funciton will check entries and call another function to add values to database under student and users
+        print("checking function call")
+        print(f_name,l_name,s_id,password)
+        
+        
+    
+    def add_course_window(self):
+        frame = Toplevel()
+        self.c_name_label = Label(frame,text="Course Name: ")
+        self.c_id_label = Label(frame,text="Course ID: ")
+        self.c_hr_label = Label(frame,text="Credit Hours: ")
+        self.instructor_label = Label(frame,text="Instructor: ")
+        self.c_name_entry = Entry(frame)
+        self.c_hr_entry = Entry(frame)
+        self.c_id_entry = Entry(frame)
+        self.instructor_entry= Entry(frame)
         self.saveButton = Button(frame,text="Save",width=7,command=lambda: [self.updateRecords(),frame.destroy()])     #save to database,print message, close window
         self.cancelButton = Button(frame, text = "Cancel",width=7,command=frame.destroy)
         
-        self.nameLabel.grid(row=2,column=1)
-        self.nameEntry.grid(row=2,column=2)
-        self.passLabel.grid(row=3,column=1)
-        self.passEntry.grid(row=3,column=2)
-        self.idLabel.grid(row=4,column=1)
-        self.idEntry.grid(row=4,column=2)
-        self.saveButton.grid(row=5,column=2,sticky=W)
-        self.cancelButton.grid(row=5,column=2,sticky=E)
+        self.c_name_label.grid(row=2,column=1)
+        self.c_name_entry.grid(row=2,column=2)
+        self.c_id_label.grid(row=3,column=1)
+        self.c_id_entry.grid(row=3,column=2)
+        self.c_hr_label.grid(row=4,column=1)
+        self.c_hr_entry.grid(row=4,column=2)
+        self.instructor_label.grid(row=5,column=1)
+        self.instructor_entry.grid(row=5,column=2)
+        self.saveButton.grid(row=6,column=2,sticky=W)
+        self.cancelButton.grid(row=6,column=2,sticky=E)
+    
         
 
     def search_student(self,frame):
@@ -134,7 +181,7 @@ class AdminWindow:
             conn.commit()
             records = c.fetchone()
             
-            c.execute("SELECT * FROM courses WHERE student_id= ?",(s_id,))
+            c.execute("SELECT * FROM enrollment WHERE student_id= ?",(s_id,))
             
             conn.commit()
             courses = c.fetchall()
@@ -178,9 +225,48 @@ class AdminWindow:
     def view_courses_window(self,student_id):
         frame = Toplevel()
         coursesLabel = Label(frame,text="Courses")
-        coursesLabel.grid(row=0,column=0)
+        coursesLabel.grid(row=0,column=0,sticky=N)
+        self.show_courses(frame,student_id)
         
-        self.listbox = Listbox(frame, width=30, height=10,)
+        
+        drop_course_button = Button(frame,text="Drop Course",command=lambda: [self.drop_course(student_id,self.listbox.index(ACTIVE)),self.show_courses(frame,student_id),self.listbox.select_set(0)])
+        drop_course_button.grid(row=0,column=0)
+        
+        courses = []
+        courses = self.get_univ_courses()
+        courselist_label = Label(frame,text="Course list:")
+        course_combobox= ttk.Combobox(frame,value = courses,width=40)
+        enroll_button = Button(frame,text = "Enroll",command=lambda: [self.enroll(student_id,courses[course_combobox.current()]),self.show_courses(frame,student_id)])
+        
+        courselist_label.grid(row=0,column=2,sticky=N)
+        course_combobox.grid(row=0,column=2)
+        enroll_button.grid(row=0,column=2,sticky=S)
+        
+    def drop_course(self,student_id,i):
+        courses = []
+        courses = self.get_courses(student_id)
+        course_id = courses[i][1]
+        with conn:
+            c.execute("DELETE FROM enrollment WHERE student_id = ? and course_id = ?",
+                    (student_id,course_id))
+            conn.commit()
+        #self.show_grades(frame,student_id,course_id)
+        
+    def enroll(self,student_id,course):
+        with conn:
+            c_id = course[0]
+            c_name = course[1]
+            c_hour = course[2]
+            c_instructor = course[3]
+            
+            c.execute("INSERT INTO enrollment (student_id,course_id,course_name,credit_hour,instructor) values (?,?,?,?,?)",
+                    (student_id,c_id,c_name,c_hour,c_instructor))
+            
+            conn.commit()
+            
+                
+    def show_courses(self,frame,student_id):
+        self.listbox = Listbox(frame, width=50,height=10,)
         self.listbox.grid(row=0, column=1)
         self.listbox.config(state=NORMAL)
         self.listbox.delete('0',END)
@@ -191,7 +277,10 @@ class AdminWindow:
         
         for i in range (len(courses)):
 #               print_record+=(record)+"\n"
-                self.listbox.insert('end',courses[i])
+                self.listbox.insert('end',courses[i][1] + "    "+(courses[i][2]) + "    "+str(courses[i][3]) +"    "+courses[i][4])
+        self.listbox.select_set(0)
+        return self.listbox
+                
         
         
     
@@ -225,7 +314,7 @@ class AdminWindow:
         self.r_label = Label(frame,text="Remove Grades: ")
         self.set_assignments(student_id,course_id)
         #self.g_combobox = ttk.Combobox(frame,value = self.assignments)
-        self.remove_button = Button(frame, text="Delete",command=lambda: [self.remove_grades(frame,student_id,course_id,self.L.index(ACTIVE)),self.L.select_set(0)])
+        self.remove_button = Button(frame, text="Delete",command=lambda: [self.remove_grades(frame,student_id,course_id,self.L.index(ACTIVE))])
         self.r_label.grid(row=4,column=0,stick=N)
         #self.g_combobox.grid(row=3,column=1)
         self.remove_button.grid(row=4,column=0)
