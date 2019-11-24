@@ -9,6 +9,7 @@ from tkinter import *
 from tkinter.font import Font
 from tkinter import ttk
 import sqlite3
+import ctypes
 
 conn = sqlite3.connect("student.db")
 c = conn.cursor()
@@ -50,17 +51,19 @@ c = conn.cursor()
 class AdminWindow:
     
     
+    admin_id = ""
+    admin_pass = ""
     student_id = ""
     course_id = ""
-    courses=[]
-    assignments=[]
-    grades = []
     
     
-    def __init__(self):
+    def __init__(self,a_id,a_pass):
 #        frame = Frame(master, width=500, height=450)
 #        frame.pack()
         frame = Toplevel()
+        
+        AdminWindow.admin_id = a_id
+        AdminWindow.admin_pass = a_pass
 #        
         self.addStudentButton = Button(frame,text="Add a student",command=lambda: self.add_student_window())
         self.addStudentButton.grid(row=0,column=1)
@@ -68,20 +71,33 @@ class AdminWindow:
         self.add_course_button = Button(frame,text="Add a course",command=lambda: self.add_course_window())
         self.add_course_button.grid(row=1,column=1)
         
+        self.remove_course_button = Button(frame,text = "Remove a course",command=lambda: self.remove_course_window())
+        
         self.searchEntry = Entry(frame)
         self.searchEntry.grid(row=2,column=1)
-        self.searchStudentButton = Button(frame,text="Search Student",command=lambda:self.search_student(frame))
+        self.searchStudentButton = Button(frame,text="Search Student",command=lambda:self.search_id(frame))
         self.searchStudentButton.grid(row=2,column=2)
         
         self.logoutButton = Button(frame, text="Logout",command=lambda: frame.destroy())
         self.logoutButton.grid(row=0,column=2)
     
-        
+    def get_admin_id(self):
+        return AdminWindow.admin_id
+    
+    def get_admin_pass(self):
+        return AdminWindow.admin_pass
+    
+    def get_student_id(self):
+        return AdminWindow.student_id
+    
+    def get_course_id(self):
+        return AdminWindow.course_id
+    
     def set_student_id(self,s_id):
-        self.student_id = s_id
+        AdminWindow.student_id = s_id
         
     def set_course_id(self,c_id):
-        self.course_id = c_id
+        AdminWindow.course_id = c_id
     
     def set_assignments(self,s_id,c_id):
         c.execute("SELECT * FROM grades WHERE student_id= ? AND course_id = ?",(s_id,c_id))
@@ -109,6 +125,12 @@ class AdminWindow:
         conn.commit()
         results = c.fetchall()
         return results
+    
+    def get_students(self):
+        c.execute("SELECT * FROM students")
+        conn.commit()
+        result = c.fetchall()
+        return results
         
         
     def add_student_window(self):
@@ -121,8 +143,10 @@ class AdminWindow:
         self.last_name_entry = Entry(frame)
         self.pass_entry = Entry(frame)
         self.id_entry = Entry(frame)
-        self.saveButton = Button(frame,text="Save",width=7,command=lambda: [self.check_student_entries("a","b","c","d"),
-                                                                            frame.destroy()])    
+        
+        self.saveButton = Button(frame,text="Save",width=7,command=lambda: self.add_student(frame,
+                self.first_name_entry.get(),self.last_name_entry.get(),
+                self.id_entry.get(),self.pass_entry.get()))    
         self.cancelButton = Button(frame, text = "Cancel",width=7,command=frame.destroy)
         
         self.first_name_label.grid(row=2,column=1)
@@ -136,11 +160,80 @@ class AdminWindow:
         self.saveButton.grid(row=6,column=2,sticky=W)
         self.cancelButton.grid(row=6,column=2,sticky=E)
     
-    def check_student_entries(self,f_name,l_name,s_id,password):
+    def add_student(self,frame,f_name,l_name,s_id,password):
         #this funciton will check entries and call another function to add values to database under student and users
         print("checking function call")
         print(f_name,l_name,s_id,password)
+        if not f_name or not l_name or not s_id or not password:
+            print("Please fill all entries")
+            ctypes.windll.user32.MessageBoxW(0, "Please Fill all required entries", "Message", 0)
+        else:
+            #add to student
+            with conn:
+                c.execute("INSERT INTO students (student_id,first_name,last_name) values (?,?,?)",
+                          (s_id,f_name,l_name))
+            
+                c.execute("INSERT INTO users (id,password,access) values (?,?,?)",
+                          (s_id,password,"student"))
+            
+                conn.commit()
+            frame.destroy()
+            
+    def remove_student_window(self):
+        frame = Toplevel()
+        confirm_label = Label(frame,text = "Are you sure?")
+        confirm_button = Button(frame,text="Yes",command= lambda: [self.confirm(),frame.destroy()])
+        cancel_button = Button(frame,text="Cancel",command = frame.destroy)
         
+        confirm_label.grid(row=0,column=0)
+        confirm_button.grid(row=1,column=0)
+        cancel_button.grid(row=1,column=1)
+        
+    def remove_student(self):
+        
+        with conn:
+            student_id = self.get_student_id()
+            c.execute("DELETE FROM enrollment WHERE student_id = ?",
+                      (student_id,))
+            c.execute("DELETE FROM grades WHERE student_id = ?",
+                      (student_id,))
+            c.execute("DELETE FROM students WHERE student_id = ?",
+                      (student_id,))
+            c.execute("DELETE FROM users WHERE id = ?",
+                      (student_id,))
+            conn.commit()
+        self.set_student_id("")
+        
+        
+    def confirm(self):
+        
+        frame = Toplevel()
+        enter_pass_label = Label(frame,text="Please enter your password")
+        password_entry = Entry(frame,show="*")
+        confirm_button = Button(frame,text="Confirm",command= lambda: self.verify_pass(frame,password_entry.get()))
+        
+        enter_pass_label.grid(row=0,column=0)
+        password_entry.grid(row=0,column=1)
+        confirm_button.grid(row=1,column=1)
+    
+    def verify_pass(self,frame,password):
+        c_id = self.get_course_id()
+        s_id = self.get_student_id()
+        
+        if(password==self.get_admin_pass()):
+            if s_id:
+                self.remove_student()
+                ctypes.windll.user32.MessageBoxW(0, "Student has been deleted from records", "Message", 0)
+                self.set_student_id("")
+                frame.destroy()
+            if c_id:
+                self.remove_course()
+                ctypes.windll.user32.MessageBoxW(0, "Course has been deleted from records", "Message", 0)
+                self.set_course_id("")
+                frame.destroy()
+
+        else:
+            ctypes.windll.user32.MessageBoxW(0, "Password entered does not match", "Message", 0)
         
     
     def add_course_window(self):
@@ -150,10 +243,12 @@ class AdminWindow:
         self.c_hr_label = Label(frame,text="Credit Hours: ")
         self.instructor_label = Label(frame,text="Instructor: ")
         self.c_name_entry = Entry(frame)
-        self.c_hr_entry = Entry(frame)
         self.c_id_entry = Entry(frame)
+        self.c_hr_entry = Entry(frame)
         self.instructor_entry= Entry(frame)
-        self.saveButton = Button(frame,text="Save",width=7,command=lambda: [self.updateRecords(),frame.destroy()])     #save to database,print message, close window
+        self.saveButton = Button(frame,text="Save",width=7,command=lambda: self.add_course(frame,
+                                                                                           self.c_id_entry.get(),self.c_name_entry.get(),
+                                                                                           self.c_hr_entry.get(),self.instructor_entry.get() ))     #save to database,print message, close window
         self.cancelButton = Button(frame, text = "Cancel",width=7,command=frame.destroy)
         
         self.c_name_label.grid(row=2,column=1)
@@ -166,57 +261,110 @@ class AdminWindow:
         self.instructor_entry.grid(row=5,column=2)
         self.saveButton.grid(row=6,column=2,sticky=W)
         self.cancelButton.grid(row=6,column=2,sticky=E)
+        
+    def add_course(self,frame,c_id,c_name,c_hour,i_name):
+        #this funciton will check entries and call another function to add values to database under student and users
+        if not c_id or not c_name or not c_hour or not i_name:
+            ctypes.windll.user32.MessageBoxW(0, "Please Fill all required entries", "Message", 0)
+        else:
+            #add to student
+            with conn:
+                c.execute("INSERT INTO courses (course_id,course_name,credit_hour,instructor_name) values (?,?,?,?)",
+                          (c_id,c_name,c_hour,i_name))
+            
+                conn.commit()
+            frame.destroy()
+            
+    def remove_course_window(self):
+        frame = Toplevel()
+        confirm_label = Label(frame,text = "Are you sure?")
+        confirm_button = Button(frame,text="Yes",command= lambda: [self.confirm(),frame.destroy()])
+        cancel_button = Button(frame,text="Cancel",command = frame.destroy)
+        
+        confirm_label.grid(row=0,column=0)
+        confirm_button.grid(row=1,column=0)
+        cancel_button.grid(row=1,column=1)
+        
+    def remove_course(self):
+        
+        with conn:
+            c_id = self.get_course_id()
+            c.execute("DELETE FROM courses WHERE course_id = ?",
+                      (c_id,))
+            c.execute("DELETE FROM enrollment WHERE course_id = ?",
+                      (c_id,))
+            conn.commit()
+        self.set_course_id("")
     
         
 
-    def search_student(self,frame):
-        self.listbox = Listbox(frame, width=30, height=10,)
-        self.listbox.grid(row=6, column=1)
-        self.listbox.config(state=NORMAL)
-        self.listbox.delete('0',END)
-        with conn:
-            s_id=self.searchEntry.get()
-            c.execute("SELECT * FROM student WHERE student_id= ?",(s_id,))
-          
-            conn.commit()
-            records = c.fetchone()
+    def search_id(self,frame):
+        if self.searchEntry:
+            self.listbox = Listbox(frame, width=30, height=10,)
+            self.listbox.grid(row=6, column=1)
+            self.listbox.config(state=NORMAL)
+            self.listbox.delete('0',END)
             
-            c.execute("SELECT * FROM enrollment WHERE student_id= ?",(s_id,))
+            with conn:
+                search_id=self.searchEntry.get()
+                c.execute("SELECT * FROM students WHERE student_id= ?",(search_id,))
+                
+                conn.commit()
+                student = c.fetchone()
+                
+                c.execute("SELECT * FROM courses WHERE course_id= ?",(search_id,))
+                
+                conn.commit()
+                course = c.fetchone()
+                
+                
+                if student:
+                    
+                    c.execute("SELECT * FROM enrollment WHERE student_id= ?",(search_id,))
+                    
+                    conn.commit()
+                    courses = c.fetchall()
+                    
+                    self.set_student_id(student[0])
+                    self.set_course_id("")
+                    
+                    label = []
+                    labels = ['Student ID: ','First Name: ','Last Name: ']
+                    course_list = []
+                    
+                    
+                    for i in range (len(student)):
+                        self.listbox.insert('end',labels[i]+student[i])
+                    self.listbox.insert('end',"Courses: ")
+                    
+                    for i in range (len(courses)):
+                        self.listbox.insert('end',courses[i][1] +" " +courses[i][2])
+                        course_list.append(courses[i][1])
+                    print(course_list)    
+                    
+                    #s = Student(records[1],records[2],records[0],course_list)
+                    remove_student_button = Button(frame,text="Remove Student",command= lambda: self.remove_student_window())
+                    remove_student_button.grid(row=6,column = 2,sticky=N)
+                    
+                    view_grades_button = Button(frame,text="View Grades",command=lambda: self.view_grades_window(student[0],course_list))
+                    view_grades_button.grid(row = 6,column=2,sticky=S)
+                    
+                    view_courses_button = Button(frame,text="View Courses",command=lambda: self.view_courses_window(student[0]))
+                    view_courses_button.grid(row=6,column=2)
+                    
+                elif course:
+                    self.set_course_id(course[0])
+                    self.set_student_id("")
+                    course_info = ["Course ID: ", "Course Name: ", " Credit Hours: ","Instructor: "]
+                    for i in range(len(course)):
+                        self.listbox.insert('end',course_info[i]+" "+str(course[i]))
+                    
+                    remove_course_button = Button(frame,text = "Remove Course",command = lambda: self.remove_course_window())
+                    remove_course_button.grid(row=6,column = 2,sticky=N)
+                
+                else:
+                    print("try and hide this")
             
-            conn.commit()
-            courses = c.fetchall()
-            
-            print(courses)
-#            query_label=Label(frame,text= print_record)
-#            query_label.grid(row=6, column=1)
-            
-            #f_name.delete(0,END)
-            print(records[0])
-            print(records[1])
-            print(records[2])
-            print_record=''
-            label = []
-            labels = ['Student ID: ','First Name: ','Last Name: ']
-            course_list = []
-            
-            
-            for i in range (len(records)):
-#               print_record+=(record)+"\n"
-                self.listbox.insert('end',labels[i]+records[i])
-            self.listbox.insert('end',"Courses: ")
-            
-            for i in range (len(courses)):
-                self.listbox.insert('end',courses[i][1] +" " +courses[i][2])
-                course_list.append(courses[i][1])
-            print(course_list)    
-            
-            #s = Student(records[1],records[2],records[0],course_list)
-            
-            view_grades_button = Button(frame,text="View Grades",command=lambda: self.view_grades_window(records[0],course_list))
-            view_grades_button.grid(row = 6,column=2,sticky=S)
-            
-            view_courses_button = Button(frame,text="View Courses",command=lambda: self.view_courses_window(records[0]))
-            view_courses_button.grid(row=6,column=2)
             #l_name.delete(0,END)
             #student_id.delete(0,END)
             #course_id.delete(0,END)
@@ -401,7 +549,7 @@ class LoginWindow:
         self.passwordEntry.grid(row=1,column=1)
         self.passwordEntry.bind("<Return>",self.loginEnterKey)  
         
-        self.loginButton = Button(frame, text = "Login", command=self.loginButton)
+        self.loginButton = Button(frame, text = "Login", command= self.loginButton)
         self.loginButton.grid(row=3,column=1)
     
     def loginButton(self):
@@ -417,14 +565,14 @@ class LoginWindow:
         
         if results:                                                     #username: "admin1", password:"1234", access:"admin"
             for i in results:
-                if i[3] == "student":
+                if i[2] == "student":
                     print("Student Login")
                     studentWindow = StudentWindow(Tk())
-                elif i[3] == "admin":
+                elif i[2] == "admin":
                     print("Admin Login")
-                    adminWindow = AdminWindow()
+                    adminWindow = AdminWindow(username,password)
         else:
-            print("Invalid login please try again")
+            ctypes.windll.user32.MessageBoxW(0, "Invalid login please try again", "Message", 0)
  
         
     def loginEnterKey(self,event):
