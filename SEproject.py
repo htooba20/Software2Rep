@@ -14,56 +14,96 @@ import ctypes
 conn = sqlite3.connect("student.db")
 c = conn.cursor()
 
-#class Student:
-#    
-#    def __init__(self,sFirstName,sLastName,sID,sCourses):
-#        self.firstName = sFirstName
-#        self.lastName = sLastName
-#        self.studentID = sID
-#        self.courses = sCourses
-#    
-#    def addStudent(self):
-#        newStudent = Student()
-#        newStudent.name = sName
-#        newStudent.studentID = sID
-#        newStudent.courses = sCourses
-#        studentList.append(newStudent)
-#    
-#    def display(self, s):
-#        print("Name: ", s.name)
-#        print("ID: ", s.studentID)
-#        print("Courses: ", s.courses)
-#    
-#    def search(self, sID): 
-#        for i in range(studentList.__len__()): 
-#            if(studentList[i].studentID == sID): 
-#                return i        
-#                                  
-#    def delete(self, sID): 
-#        i = search(sID)   
-#        del studentList[i] 
-#    
-#    def update(self, sID, sName, sCourses): 
-#        i = search(sID) 
-#        studentList[i].name = sName
-#        studentList[i].courses = sCourses
 
-class AdminWindow:
+class User():
+    
+    user_id = ""
+    user_pass = ""
+    
+    def set_user_id(self,u_id):
+        User.user_id = u_id
+        
+    def set_user_password(self,u_pass):
+        User.user_pass = u_pass
+    
+    def get_user_id(self):
+        return User.user_id
+    
+    def get_user_password(self):
+        return User.user_pass
+        
+    def set_assignments(self,s_id,c_id):
+        c.execute("SELECT * FROM grades WHERE student_id= ? AND course_id = ?",(s_id,c_id))
+        conn.commit()
+        results = c.fetchall()
+        assignments=[]
+        print(results)
+        for i in range(len(results)):
+            assignments.append(results[i][3])
+        return assignments
+    
+    def set_course_grades(self,s_id,c_id):
+        c.execute("SELECT * FROM grades WHERE student_id= ? AND course_id = ?",(s_id,c_id))
+        conn.commit()
+        results = c.fetchall()
+        assignments=[]
+        print(results)
+        for i in range(len(results)):
+            assignments.append(results[i][2])
+        return assignments
     
     
-    admin_id = ""
-    admin_pass = ""
+    def get_grades(self,s_id,c_id):
+        c.execute("SELECT * FROM grades WHERE student_id= ? AND course_id = ?",(s_id,c_id))
+        conn.commit()
+        results = c.fetchall()
+        return results
+    
+    def get_courses(self,s_id):
+        c.execute("SELECT * FROM enrollment WHERE student_id= ?",(s_id,))
+        conn.commit()
+        results = c.fetchall()
+        return results
+    
+    def get_univ_courses(self):
+        c.execute("SELECT * FROM courses")
+        conn.commit()
+        results = c.fetchall()
+        return results
+
+    def get_students(self):
+        c.execute("SELECT * FROM students")
+        conn.commit()
+        result = c.fetchall()
+        return results
+
+
+    
+class AdminWindow(User):
+    
     student_id = ""
     course_id = ""
+     
+    def set_course_id(self,c_id):
+        AdminWindow.course_id = c_id
+
+    def get_course_id(self):
+        return AdminWindow.course_id
     
+    def set_student_id(self,s_id):
+        AdminWindow.student_id = s_id
+    
+    def get_student_id(self):
+        return AdminWindow.student_id
     
     def __init__(self,a_id,a_pass):
 #        frame = Frame(master, width=500, height=450)
 #        frame.pack()
         frame = Toplevel()
+    
+        self.set_user_id(a_id)
+        self.set_user_password(a_pass)
         
-        AdminWindow.admin_id = a_id
-        AdminWindow.admin_pass = a_pass
 #        
         self.addStudentButton = Button(frame,text="Add a student",command=lambda: self.add_student_window())
         self.addStudentButton.grid(row=0,column=1)
@@ -86,51 +126,6 @@ class AdminWindow:
     
     def get_admin_pass(self):
         return AdminWindow.admin_pass
-    
-    def get_student_id(self):
-        return AdminWindow.student_id
-    
-    def get_course_id(self):
-        return AdminWindow.course_id
-    
-    def set_student_id(self,s_id):
-        AdminWindow.student_id = s_id
-        
-    def set_course_id(self,c_id):
-        AdminWindow.course_id = c_id
-    
-    def set_assignments(self,s_id,c_id):
-        c.execute("SELECT * FROM grades WHERE student_id= ? AND course_id = ?",(s_id,c_id))
-        conn.commit()
-        results = c.fetchall()
-        assignments=[]
-        print(results)
-        for i in range(len(results)):
-            assignments.append(results[i][3])
-        return assignments
-    def get_grades(self,s_id,c_id):
-        c.execute("SELECT * FROM grades WHERE student_id= ? AND course_id = ?",(s_id,c_id))
-        conn.commit()
-        results = c.fetchall()
-        return results
-    
-    def get_courses(self,s_id):
-        c.execute("SELECT * FROM enrollment WHERE student_id= ?",(s_id,))
-        conn.commit()
-        results = c.fetchall()
-        return results
-    
-    def get_univ_courses(self):
-        c.execute("SELECT * FROM courses")
-        conn.commit()
-        results = c.fetchall()
-        return results
-    
-    def get_students(self):
-        c.execute("SELECT * FROM students")
-        conn.commit()
-        result = c.fetchall()
-        return results
         
         
     def add_student_window(self):
@@ -220,7 +215,7 @@ class AdminWindow:
         c_id = self.get_course_id()
         s_id = self.get_student_id()
         
-        if(password==self.get_admin_pass()):
+        if(password==self.get_user_password()):
             if s_id:
                 self.remove_student()
                 ctypes.windll.user32.MessageBoxW(0, "Student has been deleted from records", "Message", 0)
@@ -299,7 +294,7 @@ class AdminWindow:
         
 
     def search_id(self,frame):
-        if self.searchEntry:
+        if self.searchEntry:#not in database
             self.listbox = Listbox(frame, width=30, height=10,)
             self.listbox.grid(row=6, column=1)
             self.listbox.config(state=NORMAL)
@@ -342,7 +337,6 @@ class AdminWindow:
                         course_list.append(courses[i][1])
                     print(course_list)    
                     
-                    #s = Student(records[1],records[2],records[0],course_list)
                     remove_student_button = Button(frame,text="Remove Student",command= lambda: self.remove_student_window())
                     remove_student_button.grid(row=6,column = 2,sticky=N)
                     
@@ -365,11 +359,7 @@ class AdminWindow:
                 else:
                     print("try and hide this")
             
-            #l_name.delete(0,END)
-            #student_id.delete(0,END)
-            #course_id.delete(0,END)
-            #add_grade.delete(0,END)
-            #return records
+
     def view_courses_window(self,student_id):
         frame = Toplevel()
         coursesLabel = Label(frame,text="Courses")
@@ -424,7 +414,6 @@ class AdminWindow:
         print(courses)
         
         for i in range (len(courses)):
-#               print_record+=(record)+"\n"
                 self.listbox.insert('end',courses[i][1] + "    "+(courses[i][2]) + "    "+str(courses[i][3]) +"    "+courses[i][4])
         self.listbox.select_set(0)
         return self.listbox
@@ -457,7 +446,6 @@ class AdminWindow:
         self.g_entry.grid(row=1,column=1)
         self.add_button.grid(row=2,column=1)
         self.show_grades(frame,student_id,course_id)
-    #def add_grades_window(self,courses,student_id):
     
         self.r_label = Label(frame,text="Remove Grades: ")
         self.set_assignments(student_id,course_id)
@@ -467,7 +455,7 @@ class AdminWindow:
         #self.g_combobox.grid(row=3,column=1)
         self.remove_button.grid(row=4,column=0)
         
-        #grade entry
+
         
     def show_grades(self,frame,student_id,course_id):
         
@@ -491,7 +479,7 @@ class AdminWindow:
         self.L['yscrollcommand'] = self.s.set
         
         for i in range(len(grades)): 
-           self.L.insert(END, grades[i][3]+":\t"+str(grades[i][2]) )
+           self.L.insert(END, grades[i][3]+":    "+str(grades[i][2]) )
         print(grades)
         return self.L
     
@@ -524,26 +512,206 @@ class AdminWindow:
 
 
         
-class StudentWindow:
+class StudentWindow(User):
     
-    def __init__(self, master):
-        frame = Frame(master, width=500, height=450)
-        frame.pack()
+    
+#    student_id = ""
+#    student_password = ""
+    
+    
+    def __init__(self,master,s_id,s_pass):
         
+        self.set_user_id(s_id)
+        self.set_user_password(s_pass)
+       
+        
+        with conn:
+                c.execute("SELECT * FROM students WHERE student_id= ?",(s_id,))
+                
+                conn.commit()
+                student = c.fetchone()
+                
+                c.execute("SELECT * FROM enrollment WHERE student_id= ?",(s_id,))
+                    
+                conn.commit()
+                courses = c.fetchall()
+                
+        label = []
+        labels = ['Student ID: ','First Name: ','Last Name: ']
+        course_list = []
+        
+        
+        master.geometry("450x400")
+        master.configure(bg="sky blue")
+        frame = Frame(master,bg="sky blue",width = 500,height = 100)
+        frame2 = Frame(master,bg="sky blue",width = 500,height = 100)
+        frame3 = Frame(master,bg="#FF0000",width = 200)
+#        frame.pack_propagate(0) 
+#        frame.pack(fill=BOTH, expand=1) 
+        frame.pack(side=LEFT)
+        frame2.pack(side=RIGHT)
+        frame3.place(relx = 0.5, y=2, anchor = N)
+        
+        title_label = Label(frame3,bg="light yellow",text="Student Profile",font=("ms sans serif",24,"bold"),width = 400)
+        title_label.pack(fill=X,expand=1)
+            
+        self.listbox = Listbox(frame, width=30, height=10)
+        self.listbox.grid(row=6, column=0)
+        self.listbox.config(state=NORMAL)
+        self.listbox.delete('0',END)
+        
+        student_profile = Label(frame,text="Student Info: ",bg="light yellow",relief="raised")
+        student_profile.grid(row=0,column=0,sticky="w")
+        label = Label(frame,bg="sky blue")
+        label.grid(row=1,column=1)
+        
+        self.listbox2 = Listbox(frame2, width=30, height=10)
+        self.listbox2.grid(row=6, column=0)
+        self.listbox2.config(state=NORMAL)
+        self.listbox2.delete('0',END)
+        
+                
+        for i in range (len(student)):
+            self.listbox.insert('end',labels[i]+student[i])
+            self.listbox.insert('end',"Courses: ")
+                
+        for i in range (len(courses)):
+            self.listbox.insert('end',courses[i][1] +" " +courses[i][2])
+            course_list.append(courses[i][1])
+        print(course_list) 
+        
+            
+            
+        self.course_label = Label(frame2,text="Course ID: ",bg="light yellow",relief="raised")
+        self.course_combobox = ttk.Combobox(frame2,width = 16,value=course_list)
+        self.view_course_button = Button(frame2,bg = "light yellow",text = "View Course Details",command = lambda:self.view_course_details(self.course_combobox.get(),frame2))
+        self.course_label.grid(row=0,column=0,sticky="w")
+        self.course_combobox.grid(row=0,column=0,sticky="e")
+        self.view_course_button.grid(row=1,column=0,sticky="e")
+        
+        self.view_grades_button = Button(frame2,text="View Grades",bg="light yellow",command = lambda: self.view_grades(self.course_combobox.get()))
+        self.view_grades_button.grid(row=7,sticky="e")
+        
+        #grade point function 
+        #grades = []
+        student_id= self.get_user_id()
+        #grade = self.get_grades(student_id,course_id)
+        #grade_point = self.get_grade_point()
+        course_grade = []
+        for x in range(len(courses)):
+            course_grade.append(0)
+        total_grade_point = 0
+        total_credit_hours = 0
+        print(courses)
+        for i in range(len(course_list)):
+            assignments = []
+            total_credit_hours = total_credit_hours + courses[i][3]
+            assignments = self.set_course_grades(student_id,courses[i][1])
+            for j in range(len(assignments)):
+                course_grade[i]=course_grade[i] + assignments[j]
+                print(total_credit_hours)
+                print(course_grade)
+            if(len(assignments)>1):
+                total_grade_point = total_grade_point + self.get_grade_point(course_grade[i]/len(assignments))
+            else:
+                total_credit_hours = total_credit_hours - courses[i][3]
+                
+         
+        gpa = total_grade_point/total_credit_hours
+        gpa= (gpa/100)*4
+        self.listbox.insert('end',"GPA: "+str(gpa))
+        print(gpa)
+        
+        
+    def get_grade_point(self,avg):
+        if avg >= 60 and avg < 70:
+            return 1*avg
+        elif avg >= 70 and avg < 80:
+            return 2*avg
+        elif avg >= 80 and avg < 90:
+            return 3*avg
+        elif avg >= 90:
+            return 4*avg
+        else:
+            return 0
+        
+        
+    def view_grades(self,course_id):
+        student_id = self.get_user_id()
+        frame = Toplevel()
+        
+        grades = []
+        grades = self.get_grades(student_id,course_id)
+        
+        self.s = Scrollbar(frame)
+        self.L = Listbox(frame)
+        
+        self.s.grid(row=4,column=2,sticky=NS)
+        self.L.grid(row=4,column=1,sticky=E)
+        self.L.config(state=NORMAL)
+        self.L.config(width=30)
+        self.L.delete('0',END)
+        
+        
+        self.s['command'] = self.L.yview
+        self.L['yscrollcommand'] = self.s.set
+        
+        total = 0
+        
+        for i in range(len(grades)): 
+           self.L.insert(END, grades[i][3]+":    "+str(grades[i][2]) )
+           total = total + grades[i][2]
+        course_avg = total/len(grades)
+        self.L.insert(END,"Course Average: "+str(course_avg))
+        print(grades)
+        
+        
+                
+        
+
+        
+    def view_course_details(self,c_id,frame):
+
+        self.listbox = Listbox(frame, width=30, height=10)
+        self.listbox.grid(row=6, column=0)
+        self.listbox.config(state=NORMAL)
+        self.listbox.delete('0',END)
+        with conn:
+            c.execute("SELECT * FROM courses WHERE course_id= ?",(c_id,))
+                
+            conn.commit()
+            course = c.fetchone()
+                
+        course_info = ["Course ID: ", "Course Name: ", " Credit Hours: ","Instructor: "]
+        for i in range(len(course)):
+            self.listbox.insert('end',course_info[i]+" "+str(course[i]))
+        
+        
+    def set_student_id(self,s_id):
+        StudentWindow.student_id = s_id
+        
+    def set_student_password(self,s_password):
+        StudentWindow.student_password = s_password
                      
+    def get_student_id(self):
+        return StudentWindow.student_id
+    
+    def get_student_password(self):
+        return StudentWindow.student_password
+    
 class LoginWindow:
     
     def __init__(self, master):
-        frame = Frame(master, width=500, height=450)
+        frame = Frame(master, bg="light yellow",width=500, height=450)
         frame.pack()
 
-        self.usernameLabel = Label(frame, text= "Username:")
+        self.usernameLabel = Label(frame, text= "Username:",bg="light yellow")
         self.usernameLabel.grid(row=0, sticky=E)
         self.usernameEntry= Entry(frame)
         self.usernameEntry.grid(row=0,column=1)
         self.usernameEntry.bind("<Return>",self.loginEnterKey)
         
-        self.passwordLabel = Label(frame, text= "Password:")
+        self.passwordLabel = Label(frame, text= "Password:",bg="light yellow")
         self.passwordLabel.grid(row=1, sticky=E)
         self.passwordEntry = Entry(frame)
         self.passwordEntry.grid(row=1,column=1)
@@ -567,7 +735,7 @@ class LoginWindow:
             for i in results:
                 if i[2] == "student":
                     print("Student Login")
-                    studentWindow = StudentWindow(Tk())
+                    studentWindow = StudentWindow(Tk(),username,password)
                 elif i[2] == "admin":
                     print("Admin Login")
                     adminWindow = AdminWindow(username,password)
@@ -592,9 +760,24 @@ def main():
 
     root = Tk()
     root.title("LMS")
-    root.geometry("240x120")
+    root.geometry("420x600")
+    root.configure(bg="sky blue")
+    gators = PhotoImage(file="gators.png")
+    Label(bg="sky blue").pack()
+    Label(bg="sky blue").pack()
+    Label(bg="sky blue").pack()
+
+    
+    Label(image = gators, bg="sky blue").pack()
+    
+    Label(bg="sky blue").pack()
+    Label(bg="sky blue").pack()
+    Label(bg="sky blue").pack()
+    Label(bg="sky blue").pack()
     login = LoginWindow(root)
     root.mainloop()
+    
+    
 
 if __name__ == "__main__":
     main()
