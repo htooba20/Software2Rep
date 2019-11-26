@@ -46,12 +46,21 @@ class User():
         c.execute("SELECT * FROM grades WHERE student_id= ? AND course_id = ?",(s_id,c_id))
         conn.commit()
         results = c.fetchall()
-        assignments=[]
+        course_grades=[]
         print(results)
         for i in range(len(results)):
-            assignments.append(results[i][2])
-        return assignments
+            course_grades.append(results[i][2])
+        return course_grades
     
+    def set_course_list(self,s_id):
+        c.execute("SELECT * FROM enrollment WHERE student_id= ?",(s_id,))
+        conn.commit()
+        results = c.fetchall()
+        course_list=[]
+        print(results)
+        for i in range(len(results)):
+            course_list.append(results[i][1])
+        return course_list
     
     def get_grades(self,s_id,c_id):
         c.execute("SELECT * FROM grades WHERE student_id= ? AND course_id = ?",(s_id,c_id))
@@ -83,6 +92,46 @@ class AdminWindow(User):
     
     student_id = ""
     course_id = ""
+    
+    
+    def __init__(self,master,a_id,a_pass):
+#        frame = Frame(master, width=500, height=450)
+#        frame.pack()
+        
+        master.geometry("380x400")
+        master.title("LMS-"+a_id+"(Admin)")
+        master.configure(bg="sky blue")
+        frame = Frame(master,bg="sky blue",width = 500,height = 100)
+#        frame.pack_propagate(0) 
+#        frame.pack(fill=BOTH, expand=1) 
+        frame.place(relx = 0.5, y=2, anchor = N)
+        
+        self.set_user_id(a_id)
+        self.set_user_password(a_pass)
+        
+        self.blank_label = Label(frame,bg='sky blue').grid(row=0) 
+#        
+        self.addStudentButton = Button(frame,text="Add a student",command=lambda: self.add_student_window())
+        self.addStudentButton.grid(row=1,column=1,sticky='e')
+        
+        self.blank_label = Label(frame,bg='sky blue').grid(row=2)
+        
+        self.add_course_button = Button(frame,text="Add a course",command=lambda: self.add_course_window())
+        self.add_course_button.grid(row=3,column=1,sticky='e')
+        
+        self.blank_label = Label(frame,bg='sky blue').grid(row=4)
+        
+        self.remove_course_button = Button(frame,text = "Remove a course",command=lambda: self.remove_course_window())
+        
+        self.searchEntry = Entry(frame)
+        self.searchEntry.grid(row=5,column=1,sticky='w')
+        self.searchStudentButton = Button(frame,text="Search ID",command=lambda:self.search_id(frame))
+        self.searchStudentButton.grid(row=5,column=2,sticky='e')
+        
+        self.blank_label = Label(frame,bg='sky blue').grid(row=19)
+        
+        self.logoutButton = Button(frame, text="Exit",width = 11,command=lambda: master.destroy())
+        self.logoutButton.grid(row=20,column=1,sticky='e')
      
     def set_course_id(self,c_id):
         AdminWindow.course_id = c_id
@@ -96,36 +145,11 @@ class AdminWindow(User):
     def get_student_id(self):
         return AdminWindow.student_id
     
-    def __init__(self,a_id,a_pass):
-#        frame = Frame(master, width=500, height=450)
-#        frame.pack()
-        frame = Toplevel()
-    
-        self.set_user_id(a_id)
-        self.set_user_password(a_pass)
-        
-#        
-        self.addStudentButton = Button(frame,text="Add a student",command=lambda: self.add_student_window())
-        self.addStudentButton.grid(row=0,column=1)
-        
-        self.add_course_button = Button(frame,text="Add a course",command=lambda: self.add_course_window())
-        self.add_course_button.grid(row=1,column=1)
-        
-        self.remove_course_button = Button(frame,text = "Remove a course",command=lambda: self.remove_course_window())
-        
-        self.searchEntry = Entry(frame)
-        self.searchEntry.grid(row=2,column=1)
-        self.searchStudentButton = Button(frame,text="Search Student",command=lambda:self.search_id(frame))
-        self.searchStudentButton.grid(row=2,column=2)
-        
-        self.logoutButton = Button(frame, text="Logout",command=lambda: frame.destroy())
-        self.logoutButton.grid(row=0,column=2)
-    
-    def get_admin_id(self):
-        return AdminWindow.admin_id
-    
-    def get_admin_pass(self):
-        return AdminWindow.admin_pass
+#    def get_admin_id(self):
+#        return AdminWindow.admin_id
+#    
+#    def get_admin_pass(self):
+#        return AdminWindow.admin_pass
         
         
     def add_student_window(self):
@@ -322,6 +346,7 @@ class AdminWindow(User):
                     
                     self.set_student_id(student[0])
                     self.set_course_id("")
+                    student_id = student[0]
                     
                     label = []
                     labels = ['Student ID: ','First Name: ','Last Name: ']
@@ -334,21 +359,23 @@ class AdminWindow(User):
                     
                     for i in range (len(courses)):
                         self.listbox.insert('end',courses[i][1] +" " +courses[i][2])
-                        course_list.append(courses[i][1])
-                    print(course_list)    
+                        #course_list.append(courses[i][1])
+                    #print(course_list)    
                     
                     remove_student_button = Button(frame,text="Remove Student",command= lambda: self.remove_student_window())
-                    remove_student_button.grid(row=6,column = 2,sticky=N)
+                    remove_student_button.grid(row=6,column = 2,sticky=NE)
                     
-                    view_grades_button = Button(frame,text="View Grades",command=lambda: self.view_grades_window(student[0],course_list))
-                    view_grades_button.grid(row = 6,column=2,sticky=S)
+                    view_grades_button = Button(frame,text="View Grades",command=lambda: self.view_grades_window())
+                    view_grades_button.grid(row = 6,column=2,sticky=SE)
                     
-                    view_courses_button = Button(frame,text="View Courses",command=lambda: self.view_courses_window(student[0]))
-                    view_courses_button.grid(row=6,column=2)
+                    view_courses_button = Button(frame,text="View Courses",command=lambda: self.view_courses_window())
+                    view_courses_button.grid(row=6,column=2,sticky=E)
                     
                 elif course:
+                    
                     self.set_course_id(course[0])
                     self.set_student_id("")
+                    student_id = ""
                     course_info = ["Course ID: ", "Course Name: ", " Credit Hours: ","Instructor: "]
                     for i in range(len(course)):
                         self.listbox.insert('end',course_info[i]+" "+str(course[i]))
@@ -357,28 +384,32 @@ class AdminWindow(User):
                     remove_course_button.grid(row=6,column = 2,sticky=N)
                 
                 else:
+                    self.set_course_id("")
+                    self.set_student_id("")
                     print("try and hide this")
             
 
-    def view_courses_window(self,student_id):
-        frame = Toplevel()
-        coursesLabel = Label(frame,text="Courses")
-        coursesLabel.grid(row=0,column=0,sticky=N)
-        self.show_courses(frame,student_id)
-        
-        
-        drop_course_button = Button(frame,text="Drop Course",command=lambda: [self.drop_course(student_id,self.listbox.index(ACTIVE)),self.show_courses(frame,student_id),self.listbox.select_set(0)])
-        drop_course_button.grid(row=0,column=0)
-        
-        courses = []
-        courses = self.get_univ_courses()
-        courselist_label = Label(frame,text="Course list:")
-        course_combobox= ttk.Combobox(frame,value = courses,width=40)
-        enroll_button = Button(frame,text = "Enroll",command=lambda: [self.enroll(student_id,courses[course_combobox.current()]),self.show_courses(frame,student_id)])
-        
-        courselist_label.grid(row=0,column=2,sticky=N)
-        course_combobox.grid(row=0,column=2)
-        enroll_button.grid(row=0,column=2,sticky=S)
+    def view_courses_window(self):
+        student_id = self.get_student_id()
+        if student_id:
+            frame = Toplevel()
+            coursesLabel = Label(frame,text="Courses")
+            coursesLabel.grid(row=0,column=0,sticky=N)
+            self.show_courses(frame,student_id)
+            
+            
+            drop_course_button = Button(frame,text="Drop Course",command=lambda: [self.drop_course(student_id,self.listbox.index(ACTIVE)),self.show_courses(frame,student_id),self.listbox.select_set(0)])
+            drop_course_button.grid(row=0,column=0)
+            
+            courses = []
+            courses = self.get_univ_courses()
+            courselist_label = Label(frame,text="Course list:")
+            course_combobox= ttk.Combobox(frame,value = courses,width=40)
+            enroll_button = Button(frame,text = "Enroll",command=lambda: [self.enroll(student_id,courses[course_combobox.current()]),self.show_courses(frame,student_id)])
+            
+            courselist_label.grid(row=0,column=2,sticky=N)
+            course_combobox.grid(row=0,column=2)
+            enroll_button.grid(row=0,column=2,sticky=S)
         
     def drop_course(self,student_id,i):
         courses = []
@@ -411,7 +442,7 @@ class AdminWindow(User):
         
         courses = []
         courses = self.get_courses(student_id)
-        print(courses)
+        #print(courses)
         
         for i in range (len(courses)):
                 self.listbox.insert('end',courses[i][1] + "    "+(courses[i][2]) + "    "+str(courses[i][3]) +"    "+courses[i][4])
@@ -421,14 +452,18 @@ class AdminWindow(User):
         
         
     
-    def view_grades_window(self,student_id,course_list):
-        frame = Toplevel()
-        self.course_label = Label(frame,text="Course ID: ")
-        self.course_combobox = ttk.Combobox(frame,value=course_list)
-        self.course_label.grid(row=0,column=0)
-        self.course_combobox.grid(row=0,column=1)
-        self.add_grade_button = Button(frame,text="Add/Remove Grades",command=lambda: self.add_grades_window(self.course_combobox.get(),student_id))
-        self.add_grade_button.grid(row=1,column=1)
+    def view_grades_window(self):
+        student_id = self.get_student_id()
+        if student_id:
+            frame = Toplevel()
+            course_list = []
+            course_list = self.set_course_list(student_id)
+            self.course_label = Label(frame,text="Course ID: ")
+            self.course_combobox = ttk.Combobox(frame,value=course_list)
+            self.course_label.grid(row=0,column=0)
+            self.course_combobox.grid(row=0,column=1)
+            self.add_grade_button = Button(frame,text="Add/Remove Grades",command=lambda: self.add_grades_window(self.course_combobox.get(),student_id))
+            self.add_grade_button.grid(row=1,column=1)
         
         #assignment entry
     def add_grades_window(self,course_id,student_id):
@@ -459,10 +494,6 @@ class AdminWindow(User):
         
     def show_grades(self,frame,student_id,course_id):
         
-#        self.listbox = Listbox(frame, width=30, height=10,)
-#        self.listbox.grid(row=7, column=1)
-#        self.listbox.config(state=NORMAL)
-#        self.listbox.delete('0',END)   
         grades = []
         grades = self.get_grades(student_id,course_id)
         
@@ -515,9 +546,6 @@ class AdminWindow(User):
 class StudentWindow(User):
     
     
-#    student_id = ""
-#    student_password = ""
-    
     
     def __init__(self,master,s_id,s_pass):
         
@@ -541,15 +569,16 @@ class StudentWindow(User):
         course_list = []
         
         
-        master.geometry("450x400")
+        master.geometry("640x400")
+        master.title("LMS-"+s_id+"(Student)")
         master.configure(bg="sky blue")
         frame = Frame(master,bg="sky blue",width = 500,height = 100)
         frame2 = Frame(master,bg="sky blue",width = 500,height = 100)
         frame3 = Frame(master,bg="#FF0000",width = 200)
 #        frame.pack_propagate(0) 
 #        frame.pack(fill=BOTH, expand=1) 
-        frame.pack(side=LEFT)
-        frame2.pack(side=RIGHT)
+        frame.place(relx = 0.30, rely = 0.5,anchor = "center")
+        frame2.place(relx = 0.70, rely = 0.525,anchor = "center")
         frame3.place(relx = 0.5, y=2, anchor = N)
         
         title_label = Label(frame3,bg="light yellow",text="Student Profile",font=("ms sans serif",24,"bold"),width = 400)
@@ -573,7 +602,7 @@ class StudentWindow(User):
                 
         for i in range (len(student)):
             self.listbox.insert('end',labels[i]+student[i])
-            self.listbox.insert('end',"Courses: ")
+        self.listbox.insert('end',"Courses: ")
                 
         for i in range (len(courses)):
             self.listbox.insert('end',courses[i][1] +" " +courses[i][2])
@@ -593,52 +622,50 @@ class StudentWindow(User):
         self.view_grades_button.grid(row=7,sticky="e")
         
         #grade point function 
-        #grades = []
         student_id= self.get_user_id()
-        #grade = self.get_grades(student_id,course_id)
-        #grade_point = self.get_grade_point()
         course_grade = []
         for x in range(len(courses)):
             course_grade.append(0)
         total_grade_point = 0
         total_credit_hours = 0
-        print(courses)
-        for i in range(len(course_list)):
+        
+        #print(courses)
+        for i in range(len(courses)):
             assignments = []
             total_credit_hours = total_credit_hours + courses[i][3]
             assignments = self.set_course_grades(student_id,courses[i][1])
             for j in range(len(assignments)):
                 course_grade[i]=course_grade[i] + assignments[j]
-                print(total_credit_hours)
-                print(course_grade)
-            if(len(assignments)>1):
-                total_grade_point = total_grade_point + self.get_grade_point(course_grade[i]/len(assignments))
+                #print(total_credit_hours)
+                #print(course_grade)
+            if(len(assignments)>0):
+                total_grade_point = total_grade_point + courses[i][3]*self.get_grade_point(course_grade[i]/len(assignments))
             else:
                 total_credit_hours = total_credit_hours - courses[i][3]
                 
          
         gpa = total_grade_point/total_credit_hours
-        gpa= (gpa/100)*4
+
         self.listbox.insert('end',"GPA: "+str(gpa))
         print(gpa)
         
         
     def get_grade_point(self,avg):
         if avg >= 60 and avg < 70:
-            return 1*avg
+            return 1
         elif avg >= 70 and avg < 80:
-            return 2*avg
+            return 2
         elif avg >= 80 and avg < 90:
-            return 3*avg
+            return 3
         elif avg >= 90:
-            return 4*avg
+            return 4
         else:
             return 0
         
         
     def view_grades(self,course_id):
         student_id = self.get_user_id()
-        frame = Toplevel()
+        frame = Toplevel(bg="red")
         
         grades = []
         grades = self.get_grades(student_id,course_id)
@@ -658,6 +685,7 @@ class StudentWindow(User):
         
         total = 0
         
+        Label(frame,bg="Light Yellow",text="      Assignments / Grades :      ").grid(row=4,column=0,sticky="ne")
         for i in range(len(grades)): 
            self.L.insert(END, grades[i][3]+":    "+str(grades[i][2]) )
            total = total + grades[i][2]
@@ -665,10 +693,6 @@ class StudentWindow(User):
         self.L.insert(END,"Course Average: "+str(course_avg))
         print(grades)
         
-        
-                
-        
-
         
     def view_course_details(self,c_id,frame):
 
@@ -687,17 +711,17 @@ class StudentWindow(User):
             self.listbox.insert('end',course_info[i]+" "+str(course[i]))
         
         
-    def set_student_id(self,s_id):
-        StudentWindow.student_id = s_id
-        
-    def set_student_password(self,s_password):
-        StudentWindow.student_password = s_password
-                     
-    def get_student_id(self):
-        return StudentWindow.student_id
-    
-    def get_student_password(self):
-        return StudentWindow.student_password
+#    def set_student_id(self,s_id):
+#        StudentWindow.student_id = s_id
+#        
+#    def set_student_password(self,s_password):
+#        StudentWindow.student_password = s_password
+#                     
+#    def get_student_id(self):
+#        return StudentWindow.student_id
+#    
+#    def get_student_password(self):
+#        return StudentWindow.student_password
     
 class LoginWindow:
     
@@ -713,7 +737,7 @@ class LoginWindow:
         
         self.passwordLabel = Label(frame, text= "Password:",bg="light yellow")
         self.passwordLabel.grid(row=1, sticky=E)
-        self.passwordEntry = Entry(frame)
+        self.passwordEntry = Entry(frame,show='*')
         self.passwordEntry.grid(row=1,column=1)
         self.passwordEntry.bind("<Return>",self.loginEnterKey)  
         
@@ -738,22 +762,32 @@ class LoginWindow:
                     studentWindow = StudentWindow(Tk(),username,password)
                 elif i[2] == "admin":
                     print("Admin Login")
-                    adminWindow = AdminWindow(username,password)
+                    adminWindow = AdminWindow(Tk(),username,password)
         else:
             ctypes.windll.user32.MessageBoxW(0, "Invalid login please try again", "Message", 0)
  
         
     def loginEnterKey(self,event):
         print("Logging in")
+        username = self.usernameEntry.get()
+        password = self.passwordEntry.get()
         
-        if(self.usernameEntry.get()=='admin' and self.passwordEntry.get()=='1234'):
-            print("Admin Login")     
-            #viewProfileAdmin()
-        elif(self.usernameEntry.get()=='student' and self.passwordEntry.get()=='password'):
-            print("Student Login")
-            #viewProfile()
+        with sqlite3.connect("student.db") as db:
+            cursor = db.cursor()
+        findUser = ("SELECT * FROM users WHERE id= ? AND password = ?")      #from users table in student.db
+        cursor.execute(findUser,[(username),(password)])
+        results = cursor.fetchall()                                    
+        
+        if results:                                                     
+            for i in results:
+                if i[2] == "student":
+                    print("Student Login")
+                    studentWindow = StudentWindow(Tk(),username,password)
+                elif i[2] == "admin":
+                    print("Admin Login")
+                    adminWindow = AdminWindow(Tk(),username,password)
         else:
-            print("Invalid login please try again")    
+            ctypes.windll.user32.MessageBoxW(0, "Invalid login please try again", "Message", 0)
 
     
 def main():
