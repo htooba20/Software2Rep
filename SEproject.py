@@ -11,9 +11,131 @@ from tkinter import ttk
 import sqlite3
 import ctypes
 
+#creation of relational database
+
 conn = sqlite3.connect("student.db")
 c = conn.cursor()
 
+try:
+    
+    c.execute('''CREATE TABLE "students" (
+        student_id text PRIMARY KEY NOT NULL,
+        first_name text NOT NULL,
+        last_name text NOT NULL,
+       FOREIGN KEY (student_id) REFERENCES "courses"(student_id) )''')
+except sqlite3.OperationalError as e:
+    print('sqlite error:', e.args[0])  # table already exists
+
+conn.commit()
+
+try:
+    c.execute('''CREATE TABLE "courses" (
+	"course_id"	TEXT NOT NULL,
+	"course_name"	TEXT NOT NULL,
+	"credit_hour"	INTEGER NOT NULL,
+	"instructor_name"	TEXT NOT NULL,
+	PRIMARY KEY("course_id"))''')
+except sqlite3.OperationalError as e:
+    print('sqlite error:', e.args[0])  # table already exists
+
+conn.commit()
+
+try:
+    c.execute('''CREATE TABLE "enrollment" (
+	"student_id"	TEXT NOT NULL,
+	"course_id"	TEXT NOT NULL,
+	"course_name"	TEXT NOT NULL,
+	"credit_hour"	INTEGER NOT NULL,
+	"instructor"	TEXT NOT NULL,
+	PRIMARY KEY("course_id","student_id")
+)''')
+    
+        
+except sqlite3.OperationalError as e:
+    print('sqlite error:', e.args[0])  # table already exists
+
+conn.commit()
+
+try:
+    c.execute('''CREATE TABLE instructor (
+        instructor_name text PRIMARY KEY NOT NULL,
+        instructor_lastname NOT NULL,
+       FOREIGN KEY (instructor_name) REFERENCES course(instructor_name) )''')
+except sqlite3.OperationalError as e:
+    print('sqlite error:', e.args[0])  # table already exists
+
+conn.commit()
+
+try:
+    c.execute('''CREATE TABLE faculty (CREATE TABLE "faculty" (
+	"faculty_id"	TEXT NOT NULL,
+	"faculty_first_name"	TEXT NOT NULL,
+	"faculty_last_name"	TEXT NOT NULL,
+	PRIMARY KEY("faculty_id")
+)
+        faculty_id text PRIMARY KEY NOT NULL,
+        faculty_first_name text NOT NULL,
+        faculty_last_name text NOT NULL,
+       FOREIGN KEY (faculty_id) REFERENCES course(student_id) )''')
+except sqlite3.OperationalError as e:
+    print('sqlite error:', e.args[0])  # table already exists
+
+conn.commit()
+    
+
+
+try:
+    c.execute('''CREATE TABLE "grades" (
+	"student_id"	TEXT NOT NULL,
+	"course_id"	TEXT NOT NULL,
+	"grades"	REAL,
+	"assignment"	TEXT NOT NULL,
+	PRIMARY KEY("assignment","course_id")
+)''')
+except sqlite3.OperationalError as e:
+    print('sqlite error:', e.args[0])  # table already exists
+
+conn.commit()
+
+try:
+    c.execute('''CREATE TABLE "users" (
+	"id"	TEXT NOT NULL,
+	"password"	TEXT NOT NULL,
+	"access"	TEXT NOT NULL,
+	PRIMARY KEY("id")
+)''')
+except sqlite3.OperationalError as e:
+    print('sqlite error:', e.args[0])  # table already exists
+
+conn.commit()
+
+#conn = sqlite3.connect("student.db")
+#c = conn.cursor()
+
+
+def add_admin(a_id,password):
+    
+        #this funciton will check entries and call another function to add values to database under student and users
+        print("checking function call")
+       # print(f_name,l_name,s_id,password)
+       #access="admin"
+      
+        with conn:
+    
+            
+            c.execute("INSERT INTO users (id,password,access) values (?,?,?)",
+                          (a_id,password,"admin"))
+            
+            conn.commit()
+    
+with sqlite3.connect("student.db") as db:
+    cursor = db.cursor()
+    findUser = ("SELECT * FROM users WHERE id= ? AND password = ?")      #from users table in student.db
+    cursor.execute(findUser,[("admin"),("1234")])
+    results = cursor.fetchall()
+        
+if not results:        
+    add_admin("admin","1234")
 
 class User():
     
@@ -197,6 +319,7 @@ class AdminWindow(User):
             
                 conn.commit()
             frame.destroy()
+            
             
     def remove_student_window(self):
         frame = Toplevel()
