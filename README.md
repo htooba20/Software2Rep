@@ -16,7 +16,8 @@ performances (assignments, grades, etc.).  Functions such as configuring the LMS
 student accounts, enrollment, courses, and staff members are under the jurisdiction of the administrators.  Faculty can also access 
 the students’ progress.  Students can view the classes they’re enrolled in, their grades, and their final GPA.  
 
-To run a working version on this program. You need only 3 files. You fill find them inside the folder labelled final submission project:
+To run a working version on this program. You need only 3 files. 
+You fill find them inside the zip folder labelled final submission project:
 the SEproject.py file, student database, and gator.png file. In the absence of an established student database, 
 the default admin login is
 USERNAME: admin
